@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   DAFMM2D *dafmm2d = new DAFMM2D(inputs);
 
   int N = dafmm2d->K->N;
-  Vec b = Vec::Random(N);//incidence field
+  Vec b = Vec::Random(N);
 
   std::cout << "========================= Problem Parameters =========================" << std::endl;
   std::cout << "Matrix Size                        :" << N << std::endl;

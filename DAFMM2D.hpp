@@ -221,7 +221,7 @@ public:
 		else {
 			level_LFR = 2;
 		}
-		//cout << "level_LFR: " << level_LFR << endl;
+		// cout << "level_LFR: " << level_LFR << endl;
 	}
 
 	void shift_scale_Nodes(std::vector<pts2D>& Nodes, std::vector<pts2D>& shifted_scaled_Nodes, double xShift, double yShift, double radius) {
@@ -307,7 +307,7 @@ public:
 			//k: index of box in the vector tree[j]
 			//b: boxNumber of box, tree[j][k]
 			bool condition3Leaf = false;
-			if (kappa*tree[j][k].radius/2/PI <= 1.0) condition3Leaf = true; //each leaf shoould contain less than or equal to 1 wave cycle
+			if (kappa*tree[j][k].radius/2/PI <= 0.25) condition3Leaf = true; //each leaf shoould contain less than or equal to 1 wave cycle
 			//nChebnodes are the number of points in 1 wavecycle/Wavelength - in 1D.
 			if (condition3Leaf) {
 				tree[j][k].isLeaf = true;
@@ -427,7 +427,6 @@ public:
 		//	Assigns the interactions for the children of a box
 		void assign_Box_Interactions_LFR(int j, int k, std::vector<std::vector<std::vector<orderedPair> > >& Tree_Neighbors_LFR) {
 			if (!tree[j][k].isLeaf) {
-				//#pragma omp parallel for
 				for (int c=0; c<4; ++c) {
 					assign_Child_Interaction_LFR(c,j,k, Tree_Neighbors_LFR);
 				}
@@ -436,7 +435,6 @@ public:
 
 		//	Assigns the interactions for the children all boxes at a given level
 		void assign_Level_Interactions_LFR(int j, std::vector<std::vector<std::vector<orderedPair> > >& Tree_Neighbors_LFR) {
-			//#pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				assign_Box_Interactions_LFR(j,k, Tree_Neighbors_LFR);//k is index number of box in tree[j] vector
 			}
@@ -503,12 +501,6 @@ public:
 
 		void makeLevelRestriction_Box(int l, orderedPair leaf, std::vector<std::vector<std::vector<orderedPair> > >& Tree_Neighbors_LFR, std::vector<orderedPair>& leafNodesOld) {
 			//l is index of leaf in leafNodes
-			/*
-			cout << "leafNodesOld.size(): " << leafNodesOld.size() << endl;
-			for (size_t r = 0; r < leafNodesOld.size(); r++) {
-				cout << r << ", "<< leafNodesOld[r].x << ", " << leafNodesOld[r].y << endl;
-			}
-			*/
 			int j = leaf.x;
 			int k = leaf.y;
 			for (size_t i = 0; i < Tree_Neighbors_LFR[j][k].size(); i++) {
@@ -621,7 +613,7 @@ public:
 		void assignNonLeafChargeLocations() {
 			for (int j=nLevels-1; j>1; --j) {
 				int J	=	j+1;
-				#pragma omp parallel for
+				// #pragma omp parallel for
 				for (int k=0; k<tree[j].size(); ++k) {
 					if (!tree[j][k].isLeaf) {
 						int b = tree[j][k].boxNumber;
@@ -694,8 +686,6 @@ public:
 				int b = leafNodes[k].y;
 				myfile << "\\draw (" << tree[j][b].center.x-tree[j][b].radius << ",";
 				myfile << tree[j][b].center.y-tree[j][b].radius << ") rectangle (";
-				//myfile << tree[j][b].center.y-tree[j][b].radius << ") rectangle node{\\tiny " << b << "} (";
-				//myfile << tree[j][b].center.y-tree[j][b].radius << ") rectangle node{\\tiny " << tree[j][b].boxNumber << "} (";
 				myfile << tree[j][b].center.x+tree[j][b].radius << ",";
 				myfile << tree[j][b].center.y+tree[j][b].radius << ");" << std::endl;
 			}
@@ -779,7 +769,9 @@ public:
 			}
 			else { //HFR
 				if (tree[pnj][pni].isLeaf) {
-					if ( fabs(tree[j+1][boxA_index].center.x - tree[pnj][pni].center.x) >= kappa*boxRadius[j+1]*boxRadius[j+1] + boxRadius[j+1] + boxRadius[pnj]-machinePrecision
+					// if ( fabs(tree[j+1][boxA_index].center.x - tree[pnj][pni].center.x) >= 3.0*boxRadius[j+1] + boxRadius[pnj]-machinePrecision
+					//  || fabs(tree[j+1][boxA_index].center.y - tree[pnj][pni].center.y) >= 3.0*boxRadius[j+1] + boxRadius[pnj]-machinePrecision) {
+				 if ( fabs(tree[j+1][boxA_index].center.x - tree[pnj][pni].center.x) >= kappa*boxRadius[j+1]*boxRadius[j+1] + boxRadius[j+1] + boxRadius[pnj]-machinePrecision
 					 || fabs(tree[j+1][boxA_index].center.y - tree[pnj][pni].center.y) >= kappa*boxRadius[j+1]*boxRadius[j+1] + boxRadius[j+1] + boxRadius[pnj]-machinePrecision) {
 							double arg = atan2(tree[j+1][boxA_index].center.y-tree[pnj][pni].center.y, tree[j+1][boxA_index].center.x-tree[pnj][pni].center.x);
 	 						arg = fmod(arg+2*PI+PI, 2*PI);
@@ -801,6 +793,8 @@ public:
 						int boxB = 4*pnn+nc;//its index=?
 						std::vector<int>::iterator indx = std::find(indexTree[j+1].begin(), indexTree[j+1].end(), boxB);
 						int boxB_index = indx-indexTree[j+1].begin();
+						// if ( fabs(tree[j+1][boxA_index].center.x - tree[pnj+1][boxB_index].center.x) >= 3.0*boxRadius[j+1] + boxRadius[pnj+1]-machinePrecision
+						//  || fabs(tree[j+1][boxA_index].center.y - tree[pnj+1][boxB_index].center.y) >= 3.0*boxRadius[j+1] + boxRadius[pnj+1]-machinePrecision) {
 						if ( fabs(tree[j+1][boxA_index].center.x - tree[pnj+1][boxB_index].center.x) >= kappa*boxRadius[j+1]*boxRadius[j+1] + boxRadius[j+1] + boxRadius[pnj+1]-machinePrecision
 						 || fabs(tree[j+1][boxA_index].center.y - tree[pnj+1][boxB_index].center.y) >= kappa*boxRadius[j+1]*boxRadius[j+1] + boxRadius[pnj+1]-machinePrecision) {
 							 double arg = atan2(tree[j+1][boxA_index].center.y-tree[pnj+1][boxB_index].center.y, tree[j+1][boxA_index].center.x-tree[pnj+1][boxB_index].center.x);
@@ -826,7 +820,7 @@ public:
 	//	Assigns the interactions for the children of a box
 	void assign_Box_Interactions(int j, int k) {
 		if (!tree[j][k].isLeaf) {
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int c=0; c<4; ++c) {
 				assign_Child_Interaction(c,j,k);
 			}
@@ -835,7 +829,7 @@ public:
 
 	//	Assigns the interactions for the children all boxes at a given level
 	void assign_Level_Interactions(int j) {
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int k=0; k<tree[j].size(); ++k) {
 			assign_Box_Interactions(j,k);//k is index number of box in tree[j] vector
 		}
@@ -887,7 +881,7 @@ public:
 	void assign_NonLeaf_Charges() {
 		for (int j=nLevels-1; j>1; --j) {
 			int J	=	j+1;
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (!tree[j][k].isLeaf) {
 					int b = tree[j][k].boxNumber;
@@ -985,6 +979,7 @@ public:
 					tree[j][k].user_checkPoints.clear();
 			}
 		}
+		// std::cout << "level_LFR: " << level_LFR << std::endl;
 		for (int j=nLevels; j>=level_LFR; j--) {
 			getNodes_LFR_outgoing_level(j);
 			getNodes_LFR_incoming_level(j);
@@ -1071,7 +1066,6 @@ public:
 	    std::vector<int> boxA_Particles_checkpoint;
 	    std::vector<int> IL_Particles_checkpoint;
 			int ComputedRank, n_rows, n_cols;
-			//#pragma omp parallel for
 	    for (int k=0; k<tree[j].size(); ++k) {
 				getNodes_LFR_outgoing_box(j, k, n_rows, n_cols, ComputedRank);
 				if (rankPerLevel < ComputedRank) {
@@ -1081,7 +1075,7 @@ public:
 				}
 	    }
 	  //}
-		cout << "O;	j: " << j << "	Nboxes: " << tree[j].size() << "	rows,cols: " << n_rows_checkpoint << "," << n_cols_checkpoint << "	Crank: " << rankPerLevel << endl;
+		// cout << "O;	j: " << j << "	Nboxes: " << tree[j].size() << "	rows,cols: " << n_rows_checkpoint << "," << n_cols_checkpoint << "	Crank: " << rankPerLevel << endl;
 	}
 
 
@@ -1155,9 +1149,6 @@ public:
 				IL_Nodes.insert(IL_Nodes.end(), chargeLocations.begin(), chargeLocations.end());
 			}
 
-			//sort( IL_Nodes.begin(), IL_Nodes.end() );
-			//IL_Nodes.erase( unique( IL_Nodes.begin(), IL_Nodes.end() ), IL_Nodes.end() );
-
 			n_rows = boxA_Nodes.size();
 			n_cols = IL_Nodes.size();
 			int tol_pow = TOL_POW;
@@ -1192,7 +1183,6 @@ public:
 					tree[j][k].incoming_Atilde_dec = Atilde.colPivHouseholderQr();
 				}
 			}
-			// if (n_cols == 0) {
 			else {
 				tree[j][k].incoming_ILActive = false;
 				getParticlesFromChildrenLFR_incoming_row(j, k, tree[j][k].incoming_checkPoints);
@@ -1217,7 +1207,6 @@ public:
 			std::vector<int> boxA_Particles_checkpoint;
 			std::vector<int> IL_Particles_checkpoint;
 			int ComputedRank, n_rows, n_cols;
-			//#pragma omp parallel for
 	    for (int k=0; k<tree[j].size(); ++k) {
 				getNodes_LFR_incoming_box(j, k, n_rows, n_cols, ComputedRank);
 				if (rankPerLevel < ComputedRank) {
@@ -1226,8 +1215,6 @@ public:
 					n_cols_checkpoint = n_cols;
 				}
 			}
-		//}
-		cout << "I;	j: " << j << "	Nboxes: " << tree[j].size() << "	rows,cols: " << n_rows_checkpoint << "," << n_cols_checkpoint << "	Crank: " << rankPerLevel << endl;
 	}
 
 	void LFR_M2M_ILActive_True(int j, int k) {
@@ -1275,9 +1262,6 @@ public:
 		}
 		tree[j][k].outgoing_potential = tree[j][k].outgoing_Ar*source_densities;//u^{B,o}
 		tree[j][k].outgoing_charges = tree[j][k].outgoing_Atilde_dec.solve(tree[j][k].outgoing_potential);//f^{B,o} //solve system: A\tree[j][k].outgoing_potential
-		// if (tree[j][k].outgoing_charges.norm() > pow(10,10.0)) {
-		// 	cout << "j: " << j << "	k: " << k << "	o_C.n: " << tree[j][k].outgoing_charges.norm() << endl;
-		// }
 	}
 
 	void LFR_M2M_ILActive_False(int j, int k) {
@@ -1326,7 +1310,7 @@ public:
 		y^{B,o}=tree[j][k].outgoing_chargePoints
 		*/
 		for (int j=nLevels; j>=2; --j) {
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (j<level_LFR && !tree[j][k].isLeaf) {
 					continue;
@@ -1352,9 +1336,9 @@ public:
 		f^{A,o}: tree[j][boxA].ConeTree[coneA].outgoing_charges
 		y^{A,o}: tree[j][boxA].ConeTree[coneB].outgoing_chargePoints
 		*/
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int j=2; j<=nLevels; ++j) {
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {//BoxA
 				if (j<level_LFR && !tree[j][k].isLeaf) {
 					continue;
@@ -1401,16 +1385,12 @@ public:
 									int n_cols = tree[jIL][kIL].ConeTree[coneA].outgoing_chargePoints.size();//outgoing_chargePoints
 									int RHS_size = tree[jIL][kIL].ConeTree[coneA].outgoing_charges.size();
 
-									// if (n_rows != 0 && n_cols != 0) {
 										tree[j][k].M2L.push_back(getMatrix(tree[j][k].chargeLocations, tree[jIL][kIL].ConeTree[coneA].outgoing_chargePoints));
-										//tree[j][k].incoming_potential += R*tree[jIL][kIL].ConeTree[coneA].outgoing_charges;//u^{B,o}
-									// }
 								}
 								else {
 									int n_rows = tree[j][k].chargeLocations.size();
 									int n_cols = tree[jIL][kIL].outgoing_chargePoints.size();//outgoing_chargePoints
 									tree[j][k].M2L.push_back(getMatrix(tree[j][k].chargeLocations, tree[jIL][kIL].outgoing_chargePoints));
-									//tree[j][k].incoming_potential += R*tree[jIL][kIL].outgoing_charges;
 								}
 							}
 						}
@@ -1427,9 +1407,9 @@ public:
 		f^{A,o}: tree[j][boxA].ConeTree[coneA].outgoing_charges
 		y^{A,o}: tree[j][boxA].ConeTree[coneB].outgoing_chargePoints
 		*/
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int j=2; j<=nLevels; ++j) {
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {//BoxA
 				if (j<level_LFR && !tree[j][k].isLeaf) {
 					continue;
@@ -1438,7 +1418,7 @@ public:
 					if (!tree[j][k].isLeaf) {
 						tree[j][k].incoming_potential	=	Vec::Zero(tree[j][k].user_checkPoints.size());
 						if (tree[j][k].incoming_ILActive) {
-							#pragma omp parallel for
+							// #pragma omp parallel for
 							for (int l = 0; l < tree[j][k].InteractionList.size(); l++) {
 								int jIL = tree[j][k].InteractionList[l].x;
 								int kIL = tree[j][k].InteractionList[l].y;
@@ -1466,7 +1446,7 @@ public:
 					else {
 						tree[j][k].incoming_potential	=	Vec::Zero(tree[j][k].chargeLocations.size());
 						if (tree[j][k].incoming_ILActive) {
-							#pragma omp parallel for
+							// #pragma omp parallel for
 							for (int l = 0; l < tree[j][k].InteractionList.size(); l++) {
 								int jIL = tree[j][k].InteractionList[l].x;
 								int kIL = tree[j][k].InteractionList[l].y;
@@ -1519,7 +1499,7 @@ public:
 		indx = std::find(indexTree[J].begin(), indexTree[J].end(), KboxNumber);
 		K[3] = indx-indexTree[J].begin();
 
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int child = 0; child < 4; child++) {
 			//x^{C,i}: tree[J][4*k+c].incoming_checkPoints
 			//f^{B,i,l}: tree[j][k].ConeTree[cone_parent].incoming_charges
@@ -1569,7 +1549,7 @@ public:
 		indx = std::find(indexTree[J].begin(), indexTree[J].end(), KboxNumber);
 		K[3] = indx-indexTree[J].begin();
 
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int child = 0; child < 4; child++) {
 			//x^{C,i}: tree[J][4*k+c].incoming_checkPoints
 			//f^{B,i,l}: tree[j][k].ConeTree[cone_parent].incoming_charges
@@ -1583,7 +1563,7 @@ public:
 					tree[J][K[child]].incoming_potential += tree[J][K[child]].L2L*tree[j][k].incoming_charges;//u^{B,o}
 				}
 				else {
-					#pragma omp parallel for
+					// #pragma omp parallel for
 					for (int cone_parent = 0; cone_parent < nCones[j]; cone_parent++) {//pick l
 						int n_rows = tree[J][K[child]].chargeLocations.size();
 						int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
@@ -1645,7 +1625,7 @@ public:
 
 	void LFR_L2L() {//outgoing operations
 		for (int j=2; j<nLevels; ++j) {//parent
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (j<level_LFR && !tree[j][k].isLeaf) {
 					continue;
@@ -1668,9 +1648,9 @@ public:
 
 
 		void Assemble_LFR_L2L() {//outgoing operations
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int j=2; j<nLevels; ++j) {//parent
-				#pragma omp parallel for
+				// #pragma omp parallel for
 				for (int k=0; k<tree[j].size(); ++k) {
 					if (j<level_LFR && !tree[j][k].isLeaf) {
 						continue;
@@ -1730,7 +1710,6 @@ public:
 	void evaluate_NearField() {
 	//we are always making sure that we have a tree high enough to be in LFR;
 	//so, near filed needs to be done only in LFR
-		//#pragma omp parallel for
 		for (int t=0; t<leafNodes.size(); ++t) {
 			int j = leafNodes[t].x;
 			int k = leafNodes[t].y;
@@ -1761,7 +1740,7 @@ public:
 
 void getUserCheckPoints() {
 	for (size_t j = nLevels; j >= level_LFR; j--) {//LFR
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (size_t k = 0; k < tree[j].size(); k++) {
 			if (tree[j][k].isLeaf) {
 				tree[j][k].user_checkPoints.insert(tree[j][k].user_checkPoints.end(), tree[j][k].chargeLocations.begin(), tree[j][k].chargeLocations.end());
@@ -1796,7 +1775,7 @@ void getUserCheckPoints() {
 		}
 	}
 	for (size_t j = level_LFR-1; j >= 2; j--) {//HFR
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (size_t k = 0; k < tree[j].size(); k++) {
 			if (tree[j][k].isLeaf) {
 				tree[j][k].user_checkPoints.insert(tree[j][k].user_checkPoints.end(), tree[j][k].chargeLocations.begin(), tree[j][k].chargeLocations.end());
@@ -1941,9 +1920,6 @@ void getNodes_HFR_outgoing_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 			std::vector<int> boxA_Nodes;
 			getParticlesFromChildrenHFR_outgoing_col(j, k, cone, boxA_Nodes);
 
-			//sort( boxA_Nodes.begin(), boxA_Nodes.end() );
-			//boxA_Nodes.erase( unique( boxA_Nodes.begin(), boxA_Nodes.end() ), boxA_Nodes.end() );
-
 			std::vector<int> IL_Nodes;
 			for (int b = 0; b < tree[j][k].ConeTree[cone].InteractionList.size(); b++) {
 					int jB = tree[j][k].ConeTree[cone].InteractionList[b].x;
@@ -1956,9 +1932,6 @@ void getNodes_HFR_outgoing_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 					IL_Nodes.insert(IL_Nodes.end(), chargeLocations.begin(), chargeLocations.end());
 			}
 
-			//sort( IL_Nodes.begin(), IL_Nodes.end() );
-			//IL_Nodes.erase( unique( IL_Nodes.begin(), IL_Nodes.end() ), IL_Nodes.end() );
-
 			n_rows = IL_Nodes.size();
 			n_cols = boxA_Nodes.size();
 			int tol_pow = TOL_POW;
@@ -1966,16 +1939,10 @@ void getNodes_HFR_outgoing_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 			row_indices = IL_Nodes;
 			col_indices = boxA_Nodes;
 			std::vector<int> row_bases, col_bases;
-			// if(j==5 && k==112 && cone==7) {
-			// 	cout << "j: " << j << "	k: " << k << "	cone: " << cone << "	n_rows: " << n_rows << "	n_cols: " << n_cols << endl;
-			// }
 			if (n_rows != 0 && n_cols != 0) {
 				tree[j][k].ConeTree[cone].outgoing_ILActive = true;
 				Mat dummy;
 				ACA_only_nodes(row_bases, col_bases, ComputedRank, tol_ACA, dummy, tree[j][k].ConeTree[cone].outgoing_Ar);
-				// if(j==5 && k==112 && cone==7) {
-				// 	cout << "row_bases.size(): " << row_bases.size() << "	col_bases.size(): " << col_bases.size() << "	ComputedRank: " << ComputedRank << endl;
-				// }
 				if(ComputedRank > 0) {
 					for (int r = 0; r < row_bases.size(); r++) {
 						tree[j][k].ConeTree[cone].outgoing_checkPoints.push_back(IL_Nodes[row_bases[r]]);
@@ -1995,20 +1962,15 @@ void getNodes_HFR_outgoing_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 					tree[j][k].ConeTree[cone].outgoing_Atilde_dec = Atilde.colPivHouseholderQr();
 				}
 			}
-			// if (n_rows == 0) {
 			else {
 				tree[j][k].ConeTree[cone].outgoing_ILActive = false;
 				getParticlesFromChildrenHFR_outgoing_col(j, k, cone, tree[j][k].ConeTree[cone].outgoing_chargePoints);
 			}
-			// if(j==5 && k==112 && cone==7) {
-			// 	cout << "j: " << j << "	k: " << k << "	cone: " << cone << "	OIL: " << tree[j][k].ConeTree[cone].outgoing_ILActive << endl;
-			// }
 		}
 	}
 }
 
 void getNodes_HFR_outgoing_level(int j) { //HFR; cone interactions
-	//for (int j=level_LFR-1; j>=2; --j) {
 		int rankPerLevel = 0;
 		int n_rows_checkpoint;
 		int n_cols_checkpoint;
@@ -2030,8 +1992,6 @@ void getNodes_HFR_outgoing_level(int j) { //HFR; cone interactions
 				kMax = k;
 			}
 		}
-	//}
-		cout << "O;	j: " << j << "	Nboxes: " << tree[j].size() << "	k: " << kMax << "	rows,cols: " << n_rows_checkpoint << "," << n_cols_checkpoint << "	Crank: " << rankPerLevel << endl;
 	}
 
 void getParticlesFromChildrenHFR_incoming_row(int j, int k, int cone_parent, std::vector<int>& searchNodes) {
@@ -2104,9 +2064,6 @@ void getNodes_HFR_incoming_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 			std::vector<int> boxA_Nodes;
 			getParticlesFromChildrenHFR_incoming_row(j, k, cone, boxA_Nodes);
 
-			//sort( boxA_Nodes.begin(), boxA_Nodes.end() );
-			//boxA_Nodes.erase( unique( boxA_Nodes.begin(), boxA_Nodes.end() ), boxA_Nodes.end() );
-
 			std::vector<int> IL_Nodes;
 			for (int b = 0; b < tree[j][k].ConeTree[cone].InteractionList.size(); b++) {
 					int jB = tree[j][k].ConeTree[cone].InteractionList[b].x;
@@ -2118,9 +2075,6 @@ void getNodes_HFR_incoming_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 					getParticlesFromChildrenHFR_incoming_col(jB, boxB, coneB, chargeLocations);
 					IL_Nodes.insert(IL_Nodes.end(), chargeLocations.begin(), chargeLocations.end());
 			}
-
-			//sort( IL_Nodes.begin(), IL_Nodes.end() );
-			//IL_Nodes.erase( unique( IL_Nodes.begin(), IL_Nodes.end() ), IL_Nodes.end() );
 
 			n_rows = boxA_Nodes.size();
 			n_cols = IL_Nodes.size();
@@ -2152,7 +2106,6 @@ void getNodes_HFR_incoming_box(int j, int k, int& n_rows, int& n_cols, int& Comp
 					tree[j][k].ConeTree[cone].incoming_Atilde_dec = Atilde.colPivHouseholderQr();
 				}
 			}
-			// if (n_cols == 0) {
 			else {
 				tree[j][k].ConeTree[cone].incoming_ILActive = false;
 				getParticlesFromChildrenHFR_incoming_row(j, k, cone, tree[j][k].ConeTree[cone].incoming_checkPoints);
@@ -2183,7 +2136,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 				kMax 							= k;
 			}
 		}
-	cout << "I;	j: " << j << "	Nboxes: " << tree[j].size() << "	k: " << kMax << "	rows,cols: " << n_rows_checkpoint << "," << n_cols_checkpoint << "	Crank: " << rankPerLevel << endl;
 }
 
 	void Assemble_HFR_M2M_ILActiveTrue(int j, int k, int cone_parent) {
@@ -2231,9 +2183,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		int n_cols = source_points.size();
 		if (n_rows != 0 && n_cols != 0) {
 			tree[j][k].ConeTree[cone_parent].M2M = getMatrix(tree[j][k].ConeTree[cone_parent].outgoing_checkPoints, source_points);
-			// if (tree[j][k].ConeTree[cone_parent].M2M.norm() > pow(10, 10.0)) {
-			// 	cout << "j: " << j << "	k: " << k << "	M2M.n(): " << tree[j][k].ConeTree[cone_parent].M2M.norm() << endl;
-			// }
 		}
 	}
 
@@ -2276,19 +2225,12 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		else {
 			int cone_child =  cone_parent/2; //of j+1 level;//l'
 			int Veclength = 0;
-			// #pragma omp parallel for
 			for (int child = 0; child < 4; child++) {//child
 				if (tree[J][K[child]].isLeaf) {
 					Veclength += tree[J][K[child]].outgoing_charges.size();
-					// if(j==4 && k==28 && cone_parent==14 || j==5 && k==112 && cone_parent==7 || j==5 && k==114 && cone_parent==7) {
-					// 	cout << "j: " << j << "	k: " << k << "	child: " << child << "J: " << J << "	K[child]: " << K[child] << "	OILA_c: " << tree[J][K[child]].outgoing_ILActive << "	ocharges: " << tree[J][K[child]].outgoing_charges.size() << "	ochargeP: " << tree[J][K[child]].outgoing_chargePoints.size() << endl;
-					// }
 				}
 				else {
 					Veclength += tree[J][K[child]].ConeTree[cone_child].outgoing_charges.size();
-					// if(j==4 && k==28 && cone_parent==14 || j==5 && k==112 && cone_parent==7 || j==5 && k==114 && cone_parent==7) {
-					// 	cout << "j: " << j << "	k: " << k << "	child: " << child << "J: " << J << "	K[child]: " << K[child] << "	cone_child: " << cone_child << "	OILA_c: " << tree[J][K[child]].ConeTree[cone_child].outgoing_ILActive << "	ocharges: " << tree[J][K[child]].ConeTree[cone_child].outgoing_charges.size() << "	ochargeP: " << tree[J][K[child]].ConeTree[cone_child].outgoing_chargePoints.size() << endl;
-					// }
 				}
 			}
 			source_densities = Vec::Zero(Veclength);// = tree[j][k].multipoles//source densities
@@ -2310,15 +2252,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		}
 		int n_rows = tree[j][k].ConeTree[cone_parent].outgoing_checkPoints.size();//outgoing_checkPoints
 		int n_cols = source_densities.size();
-		// if(j==4 && k==28 && cone_parent==14) {
-		// 	cout << "j: " << j << "	k: " << k << "	M2M: " << tree[j][k].ConeTree[cone_parent].M2M.rows() << ", " << tree[j][k].ConeTree[cone_parent].M2M.cols() << "	source_densities: " << source_densities.size() << endl;
-		// 	cout << "ochargep: " << tree[j][k].ConeTree[cone_parent].outgoing_chargePoints.size() << "	ocheckp: " << tree[j][k].ConeTree[cone_parent].outgoing_checkPoints.size() << endl;
-		// }
-		// if(j==5 && k==112 && cone_parent==7 || j==5 && k==114 && cone_parent==7) {
-		// 	cout << "j: " << j << "	k: " << k << "	coneP: " << cone_parent << endl;
-		// 	cout << "M2M: " << tree[j][k].ConeTree[cone_parent].M2M.rows() << ", " << tree[j][k].ConeTree[cone_parent].M2M.cols() << "	source_densities: " << source_densities.size() << endl;
-		// 	cout << "ochargep: " << tree[j][k].ConeTree[cone_parent].outgoing_chargePoints.size() << "	ocheckp: " << tree[j][k].ConeTree[cone_parent].outgoing_checkPoints.size() << endl;
-		// }
 		if (n_rows != 0 && n_cols != 0) {
 			tree[j][k].ConeTree[cone_parent].outgoing_potential = tree[j][k].ConeTree[cone_parent].M2M*source_densities;//u^{B,o}
 			tree[j][k].ConeTree[cone_parent].outgoing_charges = tree[j][k].ConeTree[cone_parent].outgoing_Atilde_dec.solve(tree[j][k].ConeTree[cone_parent].outgoing_potential);//f^{B,o} //solve system: A\tree[j][k].outgoing_potential
@@ -2357,7 +2290,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		else {
 			int cone_child =  cone_parent/2; //of j+1 level;//l'
 			int Veclength = 0;
-			// #pragma omp parallel for
 			for (int child = 0; child < 4; child++) {//child
 				if (tree[J][K[child]].isLeaf) {
 					Veclength += tree[J][K[child]].outgoing_charges.size();
@@ -2393,16 +2325,12 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		kernel evaluation between x^{B,o} and source points
 		*/
 		for (int j=level_LFR-1; j>=2; --j) {
-			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (tree[j][k].isLeaf){
 					continue;
 				}
 				if (tree[j][k].active == true) {
-					// #pragma omp parallel for
 					for (int cone_parent = 0; cone_parent < nCones[j]; cone_parent++) {//pick l
-						// cout << "j: " << j << "	k: " << k << "	cone_parent: " << cone_parent << "	ILA: " << tree[j][k].ConeTree[cone_parent].ILActive << " ochp: " << tree[j][k].ConeTree[cone_parent].outgoing_chargePoints.size() << endl;
-						// cout << "5,112, OIL: " << tree[j][k].ConeTree[cone_parent].outgoing_ILActive << "	IIL: " << tree[j][k].ConeTree[cone_parent].incoming_ILActive << endl;
 						if (tree[j][k].ConeTree[cone_parent].outgoing_ILActive) {
 							if (tree[j][k].ConeTree[cone_parent].outgoing_chargePoints.size() > 0) {
 								HFR_M2M_ILActiveTrue(j, k, cone_parent);
@@ -2425,13 +2353,13 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		kernel evaluation between x^{B,o} and source points
 		*/
 		for (int j=level_LFR-1; j>=2; --j) {
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (tree[j][k].isLeaf){
 					continue;
 				}
 				if (tree[j][k].active == true) {
-					#pragma omp parallel for
+					// #pragma omp parallel for
 					for (int cone_parent = 0; cone_parent < nCones[j]; cone_parent++) {//pick l
 						if (tree[j][k].ConeTree[cone_parent].outgoing_ILActive) {
 							Assemble_HFR_M2M_ILActiveTrue(j, k, cone_parent);
@@ -2450,17 +2378,16 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		f^{A,o,l}: tree[j][boxA].ConeTree[coneA].outgoing_charges
 		y^{A,o,l}: tree[j][boxA].ConeTree[coneA].outgoing_chargePoints
 		*/
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int j=2; j<level_LFR; ++j) {//parent
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k < tree[j].size(); ++k) {
 				if (tree[j][k].isLeaf){
 					continue;
 				}
 				if (tree[j][k].active) {
-					#pragma omp parallel for
+					// #pragma omp parallel for
 					for (int coneB = 0; coneB < nCones[j]; coneB++) {
-						//tree[j][k].ConeTree[coneB].incoming_potential = Vec::Zero(tree[j][k].ConeTree[coneB].user_checkPoints.size());
 						if (tree[j][k].ConeTree[coneB].incoming_ILActive) {
 							int numIL = tree[j][k].ConeTree[coneB].InteractionList.size();
 							for (int l = 0; l < numIL; l++) {
@@ -2470,10 +2397,7 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 									int n_rows = tree[j][k].ConeTree[coneB].user_checkPoints.size();
 									int n_cols = tree[jIL][kIL].outgoing_chargePoints.size();//outgoing_chargePoints
 									int RHS_size = tree[jIL][kIL].outgoing_charges.size();
-									// if (n_rows != 0 && n_cols != 0) {
 										tree[j][k].ConeTree[coneB].M2L.push_back(getMatrix(tree[j][k].ConeTree[coneB].user_checkPoints, tree[jIL][kIL].outgoing_chargePoints));
-										//tree[j][k].ConeTree[coneB].incoming_potential += R*tree[jIL][kIL].outgoing_charges;//u^{B,o}
-									// }
 								}
 								else {
 									double arg = atan2(tree[j][k].center.y-tree[jIL][kIL].center.y, tree[j][k].center.x-tree[jIL][kIL].center.x);
@@ -2482,10 +2406,7 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 									int n_rows = tree[j][k].ConeTree[coneB].user_checkPoints.size();
 									int n_cols = tree[jIL][kIL].ConeTree[coneA].outgoing_chargePoints.size();//outgoing_chargePoints
 									int RHS_size = tree[jIL][kIL].ConeTree[coneA].outgoing_charges.size();
-									// if (n_rows != 0 && n_cols != 0) {
 										tree[j][k].ConeTree[coneB].M2L.push_back(getMatrix(tree[j][k].ConeTree[coneB].user_checkPoints, tree[jIL][kIL].ConeTree[coneA].outgoing_chargePoints));
-										//tree[j][k].ConeTree[coneB].incoming_potential += R*tree[jIL][kIL].ConeTree[coneA].outgoing_charges;//u^{B,o}
-									// }
 								}
 							}
 						}
@@ -2503,20 +2424,20 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		f^{A,o,l}: tree[j][boxA].ConeTree[coneA].outgoing_charges
 		y^{A,o,l}: tree[j][boxA].ConeTree[coneA].outgoing_chargePoints
 		*/
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int j=2; j<level_LFR; ++j) {//parent
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k < tree[j].size(); ++k) {
 				if (tree[j][k].isLeaf){
 					continue;
 				}
 				if (tree[j][k].active) {
-					#pragma omp parallel for
+					// #pragma omp parallel for
 					for (int coneB = 0; coneB < nCones[j]; coneB++) {
 						tree[j][k].ConeTree[coneB].incoming_potential = Vec::Zero(tree[j][k].ConeTree[coneB].user_checkPoints.size());
 						if (tree[j][k].ConeTree[coneB].incoming_ILActive) {
 							int numIL = tree[j][k].ConeTree[coneB].InteractionList.size();
-							#pragma omp parallel for
+							// #pragma omp parallel for
 							for (int l = 0; l < numIL; l++) {
 								int jIL = tree[j][k].ConeTree[coneB].InteractionList[l].x;
 								int kIL = tree[j][k].ConeTree[coneB].InteractionList[l].y;
@@ -2525,11 +2446,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 									int n_cols = tree[jIL][kIL].outgoing_chargePoints.size();//outgoing_chargePoints
 									int RHS_size = tree[jIL][kIL].outgoing_charges.size();
 									if (n_rows != 0 && n_cols != 0 && RHS_size != 0) {
-										/*Mat R = getMatrix(tree[j][k].ConeTree[coneB].user_checkPoints, tree[jIL][kIL].outgoing_chargePoints);
-										Mat Err = tree[j][k].ConeTree[coneB].M2L[l]-R;
-										if (Err.norm() != 0.0) {
-											cout << "j: " << j << "	k: " << k << "	coneB: " << coneB << "	Err: " << Err.norm() << endl;
-										}*/
 										tree[j][k].ConeTree[coneB].incoming_potential += tree[j][k].ConeTree[coneB].M2L[l]*tree[jIL][kIL].outgoing_charges;//u^{B,o}
 									}
 								}
@@ -2541,11 +2457,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 									int n_cols = tree[jIL][kIL].ConeTree[coneA].outgoing_chargePoints.size();//outgoing_chargePoints
 									int RHS_size = tree[jIL][kIL].ConeTree[coneA].outgoing_charges.size();
 									if (n_rows != 0 && n_cols != 0 && RHS_size != 0) {
-										/*Mat R = getMatrix(tree[j][k].ConeTree[coneB].user_checkPoints, tree[jIL][kIL].ConeTree[coneA].outgoing_chargePoints);
-										Mat Err = tree[j][k].ConeTree[coneB].M2L[l]-R;
-										if (Err.norm() != 0.0) {
-											cout << "j: " << j << "	k: " << k << "	coneB: " << coneB << "	Err: " << Err.norm() << endl;
-										}*/
 										tree[j][k].ConeTree[coneB].incoming_potential += tree[j][k].ConeTree[coneB].M2L[l]*tree[jIL][kIL].ConeTree[coneA].outgoing_charges;//u^{B,o}
 									}
 								}
@@ -2575,9 +2486,8 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		KboxNumber = 4*b+3;
 		indx = std::find(indexTree[J].begin(), indexTree[J].end(), KboxNumber);
 		K[3] = indx-indexTree[J].begin();
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int child = 0; child < 4; child++) {
-			//cout << "J: " << J << "	K: " << K[child] << "	iL: " << tree[J][K[child]].isLeaf << endl;
 			if (j==level_LFR-1) {
 				if (level_LFR != nLevels) {
 					if (!tree[J][K[child]].isLeaf) {
@@ -2585,7 +2495,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 						int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 						if (n_rows != 0 && n_cols != 0) {
 							tree[j][k].ConeTree[cone_parent].L2L[child] = getMatrix(tree[J][K[child]].user_checkPoints, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-							//tree[J][K[child]].incoming_potential += tree[J][K[child]].L2L*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 						}
 					}
 					else {
@@ -2593,7 +2502,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 						int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 						if (n_rows != 0 && n_cols != 0) {
 							tree[j][k].ConeTree[cone_parent].L2L[child] = getMatrix(tree[J][K[child]].chargeLocations, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-							//tree[J][K[child]].incoming_potential += tree[J][K[child]].L2L*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 						}
 					}
 				}
@@ -2602,33 +2510,24 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 					int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 					if (n_rows != 0 && n_cols != 0) {
 						tree[j][k].ConeTree[cone_parent].L2L[child] = getMatrix(tree[J][K[child]].chargeLocations, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-						//tree[J][K[child]].incoming_potential += tree[J][K[child]].L2L*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 					}
 				}
 			}
 			else {
 				int cone_child = cone_parent/2;
 				if (!tree[J][K[child]].isLeaf) {
-					//cout << "J: " << J << "	K: " << K[child] << "	rc: " << tree[J][K[child]].ConeTree[cone_child].L2L.rows() << ", " << tree[J][K[child]].ConeTree[cone_child].L2L.cols() << "	rhs: " << tree[j][k].ConeTree[cone_parent].incoming_charges.size() << endl;
-
 					int n_rows = tree[J][K[child]].ConeTree[cone_child].user_checkPoints.size();
 					int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 					if (n_rows != 0 && n_cols != 0) {
 						tree[j][k].ConeTree[cone_parent].L2L[child] = getMatrix(tree[J][K[child]].ConeTree[cone_child].user_checkPoints, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-						//tree[J][K[child]].ConeTree[cone_child].incoming_potential += tree[J][K[child]].ConeTree[cone_child].L2L*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 					}
-					//cout << "done" << endl;
 				}
 				else {
 					int n_rows = tree[J][K[child]].user_checkPoints.size();
 					int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
-					//cout << "J: " << J << "	K: " << K[child] << "	rc: " << tree[J][K[child]].L2L.rows() << ", " << tree[J][K[child]].L2L.cols() << "	rhs: " << tree[j][k].ConeTree[cone_parent].incoming_charges.size() << ", " << tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size() << endl;
 					if (n_rows != 0 && n_cols != 0) {
 						tree[j][k].ConeTree[cone_parent].L2L[child] = getMatrix(tree[J][K[child]].user_checkPoints, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-						//cout << "R.rc: " << tree[J][K[child]].L2L.rows() << ", " << tree[J][K[child]].L2L.cols() << endl;
-						//tree[J][K[child]].incoming_potential += tree[J][K[child]].L2L*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 					}
-					//cout << "done" << endl;
 				}
 			}
 		}
@@ -2664,7 +2563,7 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		KboxNumber = 4*b+3;
 		indx = std::find(indexTree[J].begin(), indexTree[J].end(), KboxNumber);
 		K[3] = indx-indexTree[J].begin();
-		#pragma omp parallel for
+		// #pragma omp parallel for
 		for (int child = 0; child < 4; child++) {
 			if (j==level_LFR-1) {
 				if (level_LFR != nLevels) {
@@ -2672,11 +2571,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 						int n_rows = tree[J][K[child]].user_checkPoints.size();
 						int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 						if (n_rows != 0 && n_cols != 0) {
-							/*Mat R = getMatrix(tree[J][K[child]].user_checkPoints, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-							Mat Err = tree[j][k].ConeTree[cone_parent].L2L[child]-R;
-							if (Err.norm() != 0.0) {
-								cout << "J: " << J << "	K[child]: " << K[child] << "	cone_parent: " << cone_parent << "	Err: " << Err.norm() << endl;
-							}*/
 							tree[J][K[child]].incoming_potential += tree[j][k].ConeTree[cone_parent].L2L[child]*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 						}
 					}
@@ -2684,11 +2578,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 						int n_rows = tree[J][K[child]].chargeLocations.size();
 						int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 						if (n_rows != 0 && n_cols != 0) {
-							/*Mat R = getMatrix(tree[J][K[child]].chargeLocations, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-							Mat Err = tree[j][k].ConeTree[cone_parent].L2L[child]-R;
-							if (Err.norm() != 0.0) {
-								cout << "J: " << J << "	K[child]: " << K[child] << "	cone_parent: " << cone_parent << "	Err: " << Err.norm() << endl;
-							}*/
 							tree[J][K[child]].incoming_potential += tree[j][k].ConeTree[cone_parent].L2L[child]*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 						}
 					}
@@ -2697,11 +2586,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 					int n_rows = tree[J][K[child]].chargeLocations.size();
 					int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 					if (n_rows != 0 && n_cols != 0) {
-						/*Mat R = getMatrix(tree[J][K[child]].chargeLocations, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-						Mat Err = tree[j][k].ConeTree[cone_parent].L2L[child]-R;
-						if (Err.norm() != 0.0) {
-							cout << "J: " << J << "	K[child]: " << K[child] << "	cone_parent: " << cone_parent << "	Err: " << Err.norm() << endl;
-						}*/
 						tree[J][K[child]].incoming_potential += tree[j][k].ConeTree[cone_parent].L2L[child]*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 					}
 				}
@@ -2712,11 +2596,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 					int n_rows = tree[J][K[child]].ConeTree[cone_child].user_checkPoints.size();
 					int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 					if (n_rows != 0 && n_cols != 0) {
-						/*Mat R = getMatrix(tree[J][K[child]].ConeTree[cone_child].user_checkPoints, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-						Mat Err = tree[j][k].ConeTree[cone_parent].L2L[child]-R;
-						if (Err.norm() != 0.0) {
-							cout << "J: " << J << "	K[child]: " << K[child] << "	cone_child: " << cone_child << "	Err: " << Err.norm() << endl;
-						}*/
 						tree[J][K[child]].ConeTree[cone_child].incoming_potential += tree[j][k].ConeTree[cone_parent].L2L[child]*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 					}
 				}
@@ -2724,11 +2603,6 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 					int n_rows = tree[J][K[child]].user_checkPoints.size();
 					int n_cols = tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size();
 					if (n_rows != 0 && n_cols != 0) {
-						/*Mat R = getMatrix(tree[J][K[child]].user_checkPoints, tree[j][k].ConeTree[cone_parent].incoming_chargePoints);
-						Mat Err = tree[j][k].ConeTree[cone_parent].L2L[child]-R;
-						if (Err.norm() != 0.0) {
-							cout << "J: " << J << "	K[child]: " << K[child] << "	cone_child: " << cone_child << "	Err: " << Err.norm() << endl;
-						}*/
 						tree[J][K[child]].incoming_potential += tree[j][k].ConeTree[cone_parent].L2L[child]*tree[j][k].ConeTree[cone_parent].incoming_charges;//u^{B,o}
 					}
 				}
@@ -2804,13 +2678,13 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		kernel evaluation between x^{B,o} and source points
 		*/
 		for (int j=2; j<level_LFR; ++j) {//parent
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (tree[j][k].isLeaf){
 					continue;
 				}
 				if (tree[j][k].active == true && !tree[j][k].isLeaf) {
-					#pragma omp parallel for
+					// #pragma omp parallel for
 					for (int cone_parent = 0; cone_parent < nCones[j]; cone_parent++) {//pick l
 						if (tree[j][k].ConeTree[cone_parent].incoming_ILActive) {
 							Assemble_HFR_L2L_ILActiveTrue(j,k,cone_parent);
@@ -2829,13 +2703,13 @@ void getNodes_HFR_incoming_level(int j) { //HFR; cone interactions
 		kernel evaluation between x^{B,o} and source points
 		*/
 		for (int j=2; j<level_LFR; ++j) {//parent
-			#pragma omp parallel for
+			// #pragma omp parallel for
 			for (int k=0; k<tree[j].size(); ++k) {
 				if (tree[j][k].isLeaf){
 					continue;
 				}
 				if (tree[j][k].active == true && !tree[j][k].isLeaf) {
-					#pragma omp parallel for
+					// #pragma omp parallel for
 					for (int cone_parent = 0; cone_parent < nCones[j]; cone_parent++) {//pick l
 						if (tree[j][k].ConeTree[cone_parent].incoming_ILActive) {
 							if (tree[j][k].ConeTree[cone_parent].incoming_chargePoints.size() > 0) {

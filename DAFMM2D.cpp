@@ -38,21 +38,6 @@ public:
 
   ~DAFMM2D() {};
 
-  // void FMMTreeInitialisation() {
-  //   K->set_Standard_Cheb_Nodes();
-  // 	K->get_Transfer_Matrix();
-  // 	// K->createUniformTree();
-	// 	K->createAdaptiveTree();
-	// 	K->makeLevelRestriction_Tree();
-	// 	string filename = "tree.tex";
-	// 	K->outputAdaptiveGrid(filename);
-  // 	K->createCones();
-  // 	K->assign_Tree_Interactions();
-	// 	K->assignLeafChargeLocations(gridPoints);//chargeLocations
-  //   K->assignNonLeafChargeLocations();
-  //   K->assignLeafChebNodes();
-  // }
-
   void assemble() {
 		K->getNodes_LFR();
 		K->getNodes_HFR();
@@ -62,7 +47,6 @@ public:
 		K->Assemble_LFR_M2L();
 		K->Assemble_LFR_L2L();
 		K->Assemble_HFR_L2L();
-		// K->collectBoundary();//to plot
   }
 
   void MatVecProduct(Vec &b, Vec &output) {

@@ -80,9 +80,9 @@ public:
 
 	Mat getMatrix(int row_start_index, int col_start_index, int row_end_index, int col_end_index) {
 	  Mat mat(row_end_index-row_start_index, col_end_index-col_start_index);
-	  #pragma omp parallel for
+	  // #pragma omp parallel for
 	  for (int j=row_start_index; j < row_end_index; ++j) {
-	      #pragma omp parallel for
+	      // #pragma omp parallel for
 	      for (int k=col_start_index; k < col_end_index; ++k) {
 	          mat(j,k) = this->getMatrixEntry(j, k);
 	      }
@@ -128,6 +128,9 @@ public:
 		int N2 = col_indices.size();
 		Vec row(N2), col(N1), v(N2), u(N1);
 		Vec row_temp, col_temp;
+		std::vector<Vec> AcVec;
+		std::vector<Vec> ArVec;
+
 		std::vector<Vec> Uvec;
 		std::vector<Vec> Vvec;
 		computed_rank = 0;
@@ -136,8 +139,8 @@ public:
 		if (N1 > N2) {
 			min = N2;
 		}
-		Ac = Mat(N1, min);
-		Ar = Mat(min, N2);
+		// Ac = Mat(N1, min);
+		// Ar = Mat(min, N2);
 
 		std::set<int> remaining_row_ind;
 		std::set<int> remaining_col_ind;
@@ -158,8 +161,10 @@ public:
 				}
 			}
 			if (l_local == N1) {
-				Ac = Ac.block(0,0,N1,computed_rank);
-				Ar = Ar.block(0,0,computed_rank,N2);
+				// Ac = Ac.block(0,0,N1,computed_rank);
+				// Ar = Ar.block(0,0,computed_rank,N2);
+				Ac = Mat(N1,computed_rank);
+				Ar = Mat(computed_rank,N2);
 				return;
 			}
 			v=row/row(int(col_index));
@@ -169,8 +174,11 @@ public:
 			u	=	col;
 			Uvec.push_back(u);
 			Vvec.push_back(v);
-			Ac.col(computed_rank) = col;
-			Ar.row(computed_rank) = row;
+			AcVec.push_back(col);
+			ArVec.push_back(row);
+
+			// Ac.col(computed_rank) = col;
+			// Ar.row(computed_rank) = row;
 			remaining_col_ind.erase(col_index);
 			remaining_row_ind.erase(row_index);
 			computed_rank = 1;
@@ -208,8 +216,11 @@ public:
 				}
 				Uvec.push_back(u);
 				Vvec.push_back(v);
-				Ac.col(computed_rank) = col_temp;
-				Ar.row(computed_rank) = row_temp;
+				AcVec.push_back(col_temp);
+				ArVec.push_back(row_temp);
+
+				// Ac.col(computed_rank) = col_temp;
+				// Ar.row(computed_rank) = row_temp;
 
 				++computed_rank;
 				remaining_col_ind.erase(col_index);
@@ -223,8 +234,14 @@ public:
 				normS	=	sqrt(normS);
 				this->maxAbsVector(col, remaining_row_ind, max, row_index);
 			}
+			Ac = Mat(N1,computed_rank);
+			Ar = Mat(computed_rank,N2);
+			for (size_t i = 0; i < computed_rank; i++) {
+				Ac.col(i) = AcVec[i];
+				Ar.row(i) = ArVec[i];
+			}
 
-		Ac = Ac.block(0,0,N1,computed_rank);
-		Ar = Ar.block(0,0,computed_rank,N2);
+		// Ac = Ac.block(0,0,N1,computed_rank);
+		// Ar = Ar.block(0,0,computed_rank,N2);
 	}
 };
